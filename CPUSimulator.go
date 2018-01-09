@@ -14,6 +14,13 @@ import (
 )
 
 //////////////////////////////////////////////////////////////////////////////////
+//instruction struct
+//////////////////////////////////////////////////////////////////////////////////
+type instruction struct {
+	id, opcode int
+}
+
+//////////////////////////////////////////////////////////////////////////////////
 // Function/Process definitions
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -21,25 +28,31 @@ import (
 // Randomly generate an instruction 'opcode' between 1 and 5 and send to the retire function
 //----------------------------------------------------------------------------------
 
-func generateInstructions(id int, instruction chan<- int) {
+func generateInstructions(instructions []chan instruction, done []chan bool) {
+	go executeInstruction(instructions[0])
+	go executeInstruction(instructions[1])
+	go executeInstruction(instructions[2])
+	for i := 1; i < 99; i++ { // do forever
+		var newInstruction instruction
+		newInstruction.id = i
+		newInstruction.opcode = (rand.Intn(5) + 1) // Randomly generate a new opcode (between 1 and 5)
+		fmt.Printf("Instruction: %d\n", newInstruction.opcode)
+		instructions[newInstruction.id%3] <- newInstruction
 
-	for { // do forever
-
-		opcode := (rand.Intn(5) + 1) // Randomly generate a new opcode (between 1 and 5)
-
-		fmt.Printf("%d   Instruction: %d\n", id, opcode) // Report this to console display
-
-		instruction <- opcode // Send the instruction for retirement
+		// Report this to console display
+	}
+	for {
 	}
 }
 
 //--------------------------------------------------------------------------------
 // Executes the instruction by waiting number of seconds instruction gives
 //...............................................................................
-func executeInstruction(id int, execute <-chan int) {
+func executeInstruction(execute <-chan instruction) {
 	for {
-		opcode := <-execute
-		time.Sleep(time.Second * time.Duration(opcode))
+		inst := <-execute
+		fmt.Printf("executing instruction %d\n", inst.id)
+		time.Sleep(time.Second * time.Duration(inst.opcode))
 
 	}
 }
@@ -48,13 +61,13 @@ func executeInstruction(id int, execute <-chan int) {
 // Retires instructions by writing them to the console
 //--------------------------------------------------------------------------------
 
-func retireInstruction(id int, retired <-chan int) {
+func retireInstruction(retired <-chan instruction) {
 
 	for { // do forever
 		// Receive an instruction from the generator
 		opcode := <-retired
 
-		fmt.Printf("%d       Retired: %d \n", id, opcode) // Report to console
+		fmt.Printf("Retired: %d \n", opcode) // Report to console
 	}
 }
 
@@ -66,22 +79,18 @@ func main() {
 	rand.Seed(time.Now().Unix()) // Seed the random number generator
 
 	// Set up required channel
-	opcodes := make([]chan int, 3) //arrayOfChannels
-
-	for i := range opcodes {
-		opcodes[i] = make(chan int)
+	instructions := make([]chan instruction, 3) //arrayOfChannels
+	done := make([]chan bool, 3)
+	for i := range instructions {
+		instructions[i] = make(chan instruction)
+		done[i] = make(chan bool)
 	}
+
+	go generateInstructions(instructions, done)
 	//opcodes := make(chan int) // channel for flow of generated opcodes
 
 	// Now start the goroutines in parallel.
 	fmt.Printf("Start Go routines...\n")
-
-	for i := 0; i < 3; i++ {
-		go generateInstructions(i, opcodes[i])
-		go executeInstruction(i, opcodes[i])
-		go retireInstruction(i, opcodes[i])
-	}
-
 	for {
 	}
 
