@@ -32,7 +32,7 @@ func generateInstructions(instructions []chan instruction, done []chan bool) {
 	go executeInstruction(instructions[0])
 	go executeInstruction(instructions[1])
 	go executeInstruction(instructions[2])
-	for i := 1; i < 99; i++ { // do forever
+	for i := 1; i < 100; i++ { // do forever
 		var newInstruction instruction
 		newInstruction.id = i
 		newInstruction.opcode = (rand.Intn(5) + 1) // Randomly generate a new opcode (between 1 and 5)
@@ -41,8 +41,7 @@ func generateInstructions(instructions []chan instruction, done []chan bool) {
 
 		// Report this to console display
 	}
-	for {
-	}
+
 }
 
 //--------------------------------------------------------------------------------
