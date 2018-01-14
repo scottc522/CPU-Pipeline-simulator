@@ -29,16 +29,18 @@ type instruction struct {
 //----------------------------------------------------------------------------------
 
 func generateInstructions(instructions []chan instruction, done []chan bool) {
-	go executeInstruction(instructions[0])
-	go executeInstruction(instructions[1])
-	go executeInstruction(instructions[2])
+	retire := make(chan instruction)
+	go executeInstruction(instructions[0], retire)
+	go executeInstruction(instructions[1], retire)
+	go executeInstruction(instructions[2], retire)
+	go retireInstruction(retire)
+
 	for i := 1; i < 100; i++ { // do forever
 		var newInstruction instruction
 		newInstruction.id = i
 		newInstruction.opcode = (rand.Intn(5) + 1) // Randomly generate a new opcode (between 1 and 5)
 		fmt.Printf("Instruction: %d\n", newInstruction.opcode)
 		instructions[newInstruction.id%3] <- newInstruction
-
 		// Report this to console display
 	}
 
@@ -47,11 +49,13 @@ func generateInstructions(instructions []chan instruction, done []chan bool) {
 //--------------------------------------------------------------------------------
 // Executes the instruction by waiting number of seconds instruction gives
 //...............................................................................
-func executeInstruction(execute <-chan instruction) {
+func executeInstruction(execute <-chan instruction, retire chan<- instruction) {
 	for {
+
 		inst := <-execute
 		fmt.Printf("executing instruction %d\n", inst.id)
 		time.Sleep(time.Second * time.Duration(inst.opcode))
+		retire <- inst
 
 	}
 }
@@ -66,7 +70,7 @@ func retireInstruction(retired <-chan instruction) {
 		// Receive an instruction from the generator
 		opcode := <-retired
 
-		fmt.Printf("Retired: %d \n", opcode) // Report to console
+		fmt.Printf("Retired: %d \n", opcode.id) // Report to console
 	}
 }
 
