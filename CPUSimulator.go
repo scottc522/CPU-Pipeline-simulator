@@ -38,8 +38,9 @@ func generateInstructions(instructions []chan instruction, done []chan bool) {
 	for i := 1; i < 100; i++ { // do forever
 		var newInstruction instruction
 		newInstruction.id = i
+		//	fmt.Println(newInstruction.id)
 		newInstruction.opcode = (rand.Intn(5) + 1) // Randomly generate a new opcode (between 1 and 5)
-		fmt.Printf("Instruction: %d\n", newInstruction.opcode)
+		//	fmt.Printf("Instruction: %d\n", newInstruction.opcode)
 		instructions[newInstruction.id%3] <- newInstruction
 		// Report this to console display
 	}
@@ -53,8 +54,9 @@ func executeInstruction(execute <-chan instruction, retire chan<- instruction) {
 	for {
 
 		inst := <-execute
-		fmt.Printf("executing instruction %d\n", inst.id)
-		time.Sleep(time.Second * time.Duration(inst.opcode))
+		//	fmt.Printf("executing instruction %d\n", inst.id)
+
+		time.Sleep(time.Second * time.Duration(inst.opcode) / 2)
 		retire <- inst
 
 	}
@@ -66,11 +68,86 @@ func executeInstruction(execute <-chan instruction, retire chan<- instruction) {
 
 func retireInstruction(retired <-chan instruction) {
 
-	for { // do forever
+	for {
+		//retireie := <-retired
+		//fmt.Println(retireie.id)
+		// do forever
 		// Receive an instruction from the generator
-		opcode := <-retired
 
-		fmt.Printf("Retired: %d \n", opcode.id) // Report to console
+		pipeSort := make([]chan instruction, 6) //arrayOfChannels
+
+		for i := 0; i < 6; i++ {
+			pipeSort[i] = make(chan instruction)
+
+		}
+		for i := 0; i < 5; i++ {
+			go pipeSorter(i, pipeSort[i], pipeSort[i+1])
+		}
+		go retire(pipeSort[5])
+		myInstruction := <-retired
+		//for {
+		//	fmt.Println(myInstruction.id)
+		//	myInstruction = <-retired
+		//}
+		for {
+
+			//fmt.Println(myInstruction)
+
+			//select {
+			//case <-retired:
+			nextInstruction := <-retired
+			//for {
+			//	fmt.Println(nextInstruction)
+			//	nextInstruction = <-retired
+			//}
+			//fmt.Println(myInstruction.id)
+			//fmt.Println(nextInstruction.id)
+			//	fmt.Println("Options are ", myInstruction.id, "and  ", nextInstruction.id)
+			if myInstruction.id > nextInstruction.id {
+				pipeSort[0] <- nextInstruction
+				//fmt.Println("i chose ", nextInstruction)
+			} else {
+
+				//	fmt.Println("I chose ", nextInstruction)
+				pipeSort[0] <- myInstruction
+				myInstruction = nextInstruction
+				//	}
+
+			}
+
+		}
+
+		///fmt.Printf("Retired: %d \n", opcode.id) // Report to console
+	}
+}
+func pipeSorter(id int, myInstructions <-chan instruction, nextInstructions chan<- instruction) {
+
+	//fmt.Println(id, myInstruction.id)
+	myInstruction := <-myInstructions
+	for {
+		//println(id)
+		//select {
+		//case <-myInstructions:
+
+		nextInstruction := <-myInstructions
+		//fmt.Println("My choice is between  ", myInstruction.id, "and  ", nextInstruction.id)
+		if myInstruction.id < nextInstruction.id {
+			//	fmt.Println("I CHOSE  ", nextInstruction.id)
+			nextInstructions <- nextInstruction
+		} else {
+			//	fmt.Println("I CHOSE  ", myInstruction.id)
+			nextInstructions <- myInstruction
+			myInstruction = nextInstruction
+		}
+	}
+
+}
+
+func retire(myInstructions <-chan instruction) {
+	for {
+		//<-myInstructions
+		myInstruction := <-myInstructions
+		fmt.Println(myInstruction)
 	}
 }
 
