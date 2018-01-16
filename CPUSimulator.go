@@ -37,7 +37,7 @@ func generateInstructions(instructions []chan instruction) {
 		//The instruction id is equal to the itteration of the for loop.
 		newInstruction.id = i
 		// Randomly generates a new opcode (between 1 and 5) for this instruction
-		newInstruction.opcode = (rand.Intn(5) + 1)
+		newInstruction.opcode = rand.Intn(5)
 		//Sends this new instruction to one of the instructions channels.
 		//The channel that is is sent to is determined by the modulous of it's id. Ensuring that each
 		//execution pipleine is used evenly.
@@ -206,7 +206,7 @@ func main() {
 
 	// Set up required channel
 	instructions := make([]chan instruction, 3) //arrayOfChannels
-	done := make(chan bool)
+	//done := make(chan bool)
 	for i := range instructions {
 		instructions[i] = make(chan instruction)
 	}
@@ -217,10 +217,10 @@ func main() {
 	// Now start the goroutines in parallel.
 	fmt.Printf("Start Go routines...\n")
 	for {
-		select {
-		case <-done:
-			goto F
-		}
+		//select {
+		//case <-done:
+		//goto F
+		//}
 	}
-F:
+	//F:
 } // end of main /////////////////////////////////////////////////////////////////
