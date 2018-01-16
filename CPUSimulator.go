@@ -35,7 +35,7 @@ func generateInstructions(instructions []chan instruction, done []chan bool) {
 	go executeInstruction(instructions[2], retire)
 	go retireInstruction(retire)
 
-	for i := 1; i < 100; i++ { // do forever
+	for i := 1; i < 101; i++ { // do forever
 		var newInstruction instruction
 		newInstruction.id = i
 		//	fmt.Println(newInstruction.id)
@@ -124,18 +124,19 @@ func pipeSorter(id int, myInstructions <-chan instruction, nextInstructions chan
 
 	//fmt.Println(id, myInstruction.id)
 	myInstruction := <-myInstructions
+
 	for {
 		//println(id)
 		//select {
 		//case <-myInstructions:
 
 		nextInstruction := <-myInstructions
-		//fmt.Println("My choice is between  ", myInstruction.id, "and  ", nextInstruction.id)
-		if myInstruction.id < nextInstruction.id {
-			//	fmt.Println("I CHOSE  ", nextInstruction.id)
+		//fmt.Println(" Pipe sorter My choice is between  ", myInstruction.id, "and  ", nextInstruction.id)
+		if myInstruction.id > nextInstruction.id {
+			//fmt.Println("Pipe sorter I CHOSE  ", nextInstruction.id)
 			nextInstructions <- nextInstruction
 		} else {
-			//	fmt.Println("I CHOSE  ", myInstruction.id)
+			//fmt.Println("pipe sorter I CHOSE  ", myInstruction.id)
 			nextInstructions <- myInstruction
 			myInstruction = nextInstruction
 		}
