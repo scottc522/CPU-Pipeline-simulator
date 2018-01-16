@@ -45,7 +45,7 @@ func generateInstructions(instructions []chan instruction, done []chan bool) {
 		// Report this to console display
 	}
 	var finalInstruction instruction
-	finalInstruction.id = -1
+	finalInstruction.id = 101
 	finalInstruction.opcode = 5
 	instructions[2] <- finalInstruction
 
@@ -59,11 +59,12 @@ func executeInstruction(execute <-chan instruction, retire chan<- instruction) {
 
 		inst := <-execute
 		//	fmt.Printf("executing instruction %d\n", inst.id)
-		if inst.id != -1 {
-			time.Sleep(time.Second * time.Duration(inst.opcode) / 2)
+		if inst.id != 101 {
+			time.Sleep(time.Second * time.Duration(inst.opcode) / 6)
 			retire <- inst
 		} else {
 			retire <- inst
+			time.Sleep(time.Second * 10)
 			goto F
 
 		}
@@ -111,7 +112,7 @@ func retireInstruction(retired <-chan instruction) {
 			//		fmt.Println(nextInstruction)
 			//		nextInstruction = <-retired
 			//	}
-			if nextInstruction.id == -1 {
+			if nextInstruction.id == 101 {
 				pipeSort[0] <- myInstruction
 				pipeSort[0] <- nextInstruction
 				goto R
@@ -155,7 +156,7 @@ func pipeSorter(id int, myInstructions <-chan instruction, nextInstructions chan
 		//case <-myInstructions:
 
 		nextInstruction := <-myInstructions
-		if nextInstruction.id == -1 {
+		if nextInstruction.id == 101 {
 			nextInstructions <- myInstruction
 			nextInstructions <- nextInstruction
 			goto F
@@ -176,9 +177,15 @@ F:
 func retire(myInstructions <-chan instruction) {
 	for {
 		//<-myInstructions
+
 		myInstruction := <-myInstructions
+		if myInstruction.id == 101 {
+			goto F
+		}
 		fmt.Println(myInstruction)
+	F:
 	}
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////
