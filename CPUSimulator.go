@@ -44,6 +44,10 @@ func generateInstructions(instructions []chan instruction, done []chan bool) {
 		instructions[newInstruction.id%3] <- newInstruction
 		// Report this to console display
 	}
+	var finalInstruction instruction
+	finalInstruction.id = -1
+	finalInstruction.opcode = 5
+	instructions[2] <- finalInstruction
 
 }
 
@@ -55,11 +59,18 @@ func executeInstruction(execute <-chan instruction, retire chan<- instruction) {
 
 		inst := <-execute
 		//	fmt.Printf("executing instruction %d\n", inst.id)
+		if inst.id != -1 {
+			time.Sleep(time.Second * time.Duration(inst.opcode) / 2)
+			retire <- inst
+		} else {
+			retire <- inst
+			goto F
 
-		time.Sleep(time.Second * time.Duration(inst.opcode) / 2)
-		retire <- inst
+		}
 
 	}
+F:
+	fmt.Println("execution has finished.")
 }
 
 //--------------------------------------------------------------------------------
@@ -96,6 +107,15 @@ func retireInstruction(retired <-chan instruction) {
 			//select {
 			//case <-retired:
 			nextInstruction := <-retired
+			//	for {
+			//		fmt.Println(nextInstruction)
+			//		nextInstruction = <-retired
+			//	}
+			if nextInstruction.id == -1 {
+				pipeSort[0] <- myInstruction
+				pipeSort[0] <- nextInstruction
+				goto R
+			}
 			//for {
 			//	fmt.Println(nextInstruction)
 			//	nextInstruction = <-retired
@@ -119,18 +139,27 @@ func retireInstruction(retired <-chan instruction) {
 
 		///fmt.Printf("Retired: %d \n", opcode.id) // Report to console
 	}
+R:
+	fmt.Println("Pipeline entry is complete")
 }
+
 func pipeSorter(id int, myInstructions <-chan instruction, nextInstructions chan<- instruction) {
 
 	//fmt.Println(id, myInstruction.id)
 	myInstruction := <-myInstructions
 
 	for {
+
 		//println(id)
 		//select {
 		//case <-myInstructions:
 
 		nextInstruction := <-myInstructions
+		if nextInstruction.id == -1 {
+			nextInstructions <- myInstruction
+			nextInstructions <- nextInstruction
+			goto F
+		}
 		//fmt.Println(" Pipe sorter My choice is between  ", myInstruction.id, "and  ", nextInstruction.id)
 		if myInstruction.id > nextInstruction.id {
 			//fmt.Println("Pipe sorter I CHOSE  ", nextInstruction.id)
@@ -141,7 +170,7 @@ func pipeSorter(id int, myInstructions <-chan instruction, nextInstructions chan
 			myInstruction = nextInstruction
 		}
 	}
-
+F:
 }
 
 func retire(myInstructions <-chan instruction) {
