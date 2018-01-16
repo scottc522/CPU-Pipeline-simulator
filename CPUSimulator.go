@@ -1,12 +1,8 @@
-// Pipeline Simulator OOO simple version 1.go
-// The Super-Scalar Processor Simulator - simple out-of-order version, runs forever.
-// A.Oram 2017
-//fidninjjn
+// Pipeline Simulator
+//b4005596 Scott Chapman
 package main
 
-//iigijb/dinagn
 // Imported packages
-
 import (
 	"fmt"       // for console I/O
 	"math/rand" // for randomly creating opcodes
@@ -15,63 +11,74 @@ import (
 
 //////////////////////////////////////////////////////////////////////////////////
 //instruction struct
+//opcode is how long the instruction runs for when executed
 //////////////////////////////////////////////////////////////////////////////////
 type instruction struct {
 	id, opcode int
 }
 
-//////////////////////////////////////////////////////////////////////////////////
-// Function/Process definitions
-//////////////////////////////////////////////////////////////////////////////////
-
 //----------------------------------------------------------------------------------
-// Randomly generate an instruction 'opcode' between 1 and 5 and send to the retire function
+// Randomly generates an instruction and sends it to one of the execution pipelines
 //----------------------------------------------------------------------------------
-
-func generateInstructions(instructions []chan instruction, done []chan bool) {
+//It takes an array of channels. Each of the execution pieplines listens to one channel in that array
+func generateInstructions(instructions []chan instruction) {
+	//Retire is a channel that the first function in the sort and retire function will be listening too.
 	retire := make(chan instruction)
-	go executeInstruction(instructions[0], retire)
-	go executeInstruction(instructions[1], retire)
-	go executeInstruction(instructions[2], retire)
+	//Each one of the three execution pipelines is passed a different instruction channel and the same retire channel
+	//The three go piplelines are activated
+	go executeInstruction(0, instructions[0], retire)
+	go executeInstruction(1, instructions[1], retire)
+	go executeInstruction(2, instructions[2], retire)
+	//The first step in the sort-retire function is activated
 	go retireInstruction(retire)
-
+	//Runs 101 times to generate instructions with ids from 1 to 100
 	for i := 1; i < 101; i++ { // do forever
 		var newInstruction instruction
+		//The instruction id is equal to the itteration of the for loop.
 		newInstruction.id = i
-		//	fmt.Println(newInstruction.id)
-		newInstruction.opcode = (rand.Intn(5) + 1) // Randomly generate a new opcode (between 1 and 5)
-		//	fmt.Printf("Instruction: %d\n", newInstruction.opcode)
+		// Randomly generates a new opcode (between 1 and 5) for this instruction
+		newInstruction.opcode = (rand.Intn(5) + 1)
+		//Sends this new instruction to one of the instructions channels.
+		//The channel that is is sent to is determined by the modulous of it's id. Ensuring that each
+		//execution pipleine is used evenly.
 		instructions[newInstruction.id%3] <- newInstruction
-		// Report this to console display
+
 	}
+	//Set up a dummy instruction, and send it to each of the execute pipelines so they know to shutdown.
 	var finalInstruction instruction
 	finalInstruction.id = 101
 	finalInstruction.opcode = 5
-	instructions[2] <- finalInstruction
+	time.Sleep(time.Second * 5 / 10)
+	for k := 0; k < 3; k++ {
+
+		instructions[k] <- finalInstruction
+
+	}
 
 }
 
 //--------------------------------------------------------------------------------
 // Executes the instruction by waiting number of seconds instruction gives
 //...............................................................................
-func executeInstruction(execute <-chan instruction, retire chan<- instruction) {
+func executeInstruction(id int, execute <-chan instruction, retire chan<- instruction) {
 	for {
 
 		inst := <-execute
 		//	fmt.Printf("executing instruction %d\n", inst.id)
 		if inst.id != 101 {
-			time.Sleep(time.Second * time.Duration(inst.opcode) / 6)
+			time.Sleep(time.Second * time.Duration(inst.opcode) / 10)
 			retire <- inst
 		} else {
+			//fmt.Println(id)
 			retire <- inst
-			time.Sleep(time.Second * 10)
+			//time.Sleep(time.Second * 10)
 			goto F
 
 		}
 
 	}
 F:
-	fmt.Println("execution has finished.")
+	fmt.Println(id, "execution has finished.")
 }
 
 //--------------------------------------------------------------------------------
@@ -115,6 +122,8 @@ func retireInstruction(retired <-chan instruction) {
 			if nextInstruction.id == 101 {
 				pipeSort[0] <- myInstruction
 				pipeSort[0] <- nextInstruction
+				<-retired
+				<-retired
 				goto R
 			}
 			//for {
@@ -197,18 +206,21 @@ func main() {
 
 	// Set up required channel
 	instructions := make([]chan instruction, 3) //arrayOfChannels
-	done := make([]chan bool, 3)
+	done := make(chan bool)
 	for i := range instructions {
 		instructions[i] = make(chan instruction)
-		done[i] = make(chan bool)
 	}
 
-	go generateInstructions(instructions, done)
+	go generateInstructions(instructions)
 	//opcodes := make(chan int) // channel for flow of generated opcodes
 
 	// Now start the goroutines in parallel.
 	fmt.Printf("Start Go routines...\n")
 	for {
+		select {
+		case <-done:
+			goto F
+		}
 	}
-
+F:
 } // end of main /////////////////////////////////////////////////////////////////
